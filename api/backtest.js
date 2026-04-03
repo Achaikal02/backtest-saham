@@ -1,6 +1,12 @@
 import YahooFinance from 'yahoo-finance2'
+import { createClient } from '@supabase/supabase-js'
 
 const yahooFinance = new YahooFinance()
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -185,6 +191,28 @@ export default async function handler(req, res) {
     })
   } catch (error) {
     console.error('Error backtest:', error)
+
+    const { error: insertError } = await supabase
+        .from('backtest_results')
+        .insert([
+            {
+            created_at: new Date().toISOString(),
+            total_trades: validResults.length,
+            winning_trades: winningTrades,
+            losing_trades: losingTrades,
+            win_rate: Number(winRate.toFixed(2)),
+            total_return: Number(totalReturn.toFixed(2)),
+            average_return: Number(averageReturn.toFixed(2)),
+            average_holding_days: Number(averageHoldingDays.toFixed(2)),
+            average_rr: Number(averageRR.toFixed(2)),
+            average_max_drawdown: Number(averageMaxDrawdown.toFixed(2)),
+            results
+            }
+        ])
+
+        if (insertError) {
+        console.error('Supabase insert error:', insertError)
+        }
 
     return res.status(500).json({
       error: error.message || 'Terjadi kesalahan pada server'
