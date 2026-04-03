@@ -1,0 +1,90 @@
+# Cara Menjalankan Project Backtest Saham
+
+## 1. Jalankan Backend Node.js
+
+Buka terminal pertama:
+
+```bash
+cd D:\MATERIKULIAH\OWNPROJECT\BACKTEST\TRY
+node index.js
+```
+
+Jika berhasil akan muncul:
+
+```text
+Server running on port 5000
+```
+
+Backend berjalan di:
+
+```text
+http://localhost:5000
+```
+
+---
+
+## 2. Jalankan Frontend React
+
+Buka terminal kedua:
+
+```bash
+cd D:\MATERIKULIAH\OWNPROJECT\BACKTEST\TRY\frontend
+npm run dev
+```
+
+Jika berhasil akan muncul seperti:
+
+```text
+Local: http://localhost:5173/
+```
+
+Frontend berjalan di:
+
+```text
+http://localhost:5173
+```
+
+---
+
+## 3. Jika Pertama Kali Clone atau Pindah Device
+
+Install dependency backend:
+
+```bash
+cd D:\MATERIKULIAH\OWNPROJECT\BACKTEST\TRY
+npm install
+```
+
+Install dependency frontend:
+
+```bash
+cd D:\MATERIKULIAH\OWNPROJECT\BACKTEST\TRY\frontend
+npm install
+```
+
+---
+
+## 4. File .env Backend
+
+Buat file `.env` di folder TRY:
+
+```env
+SUPABASE_URL=https://namaproject.supabase.co
+SUPABASE_KEY=sb_publishable_xxxxx
+```
+
+---
+
+## 5. Urutan Menjalankan
+
+1. Jalankan backend dulu
+2. Jalankan frontend React
+3. Buka browser:
+
+```text
+http://localhost:5173
+```
+
+4. Tambahkan saham
+5. Klik Run Backtest
+6. Data otomatis tersimpan ke Supabase
