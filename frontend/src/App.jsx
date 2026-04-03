@@ -20,6 +20,7 @@ function App() {
     return savedResult ? JSON.parse(savedResult) : null
   })
   const [loading, setLoading] = useState(false)
+  const [historyData, setHistoryData] = useState([])
   useEffect(() => {
     localStorage.setItem('stocks', JSON.stringify(stocks))
   }, [stocks])
@@ -27,6 +28,18 @@ function App() {
   useEffect(() => {
     localStorage.setItem('result', JSON.stringify(result))
   }, [result])
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const response = await axios.get('/api/history')
+        setHistoryData(response.data)
+      } catch (error) {
+        console.error('Gagal mengambil history:', error)
+      }
+    }
+
+    fetchHistory()
+  }, [])
 
   const stockOptions = stockData.map((item) => item.code)
 
@@ -291,6 +304,67 @@ function App() {
                     <td>{item.rrRatio}</td>
                     <td>{item.maxDrawdown}%</td>
                     <td>{item.actualHoldingDays}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      
+      {historyData.length > 0 && (
+        <div style={{ marginTop: '40px' }}>
+          <h2>History Backtest dari Supabase</h2>
+
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Entry Date</th>
+                  <th>End Date</th>
+                  <th>Buy Price</th>
+                  <th>Target Price</th>
+                  <th>Stop Loss</th>
+                  <th>Current Price</th>
+                  <th>Exit Price</th>
+                  <th>Status</th>
+                  <th>Return %</th>
+                  <th>RR Ratio</th>
+                  <th>Max Drawdown</th>
+                  <th>Holding Days</th>
+                  <th>Created At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historyData.map((item, index) => (
+                  <tr key={index}>
+                    <td>{item.ticker}</td>
+                    <td>{item.entry_date}</td>
+                    <td>{item.end_date}</td>
+                    <td>{item.buy_price}</td>
+                    <td>{item.target_price}</td>
+                    <td>{item.stop_loss}</td>
+                    <td>{item.current_price}</td>
+                    <td>{item.exit_price}</td>
+                    <td
+                      className={
+                        item.status === 'Target Hit'
+                          ? 'status-profit'
+                          : item.status === 'Stop Loss Hit'
+                          ? 'status-loss'
+                          : 'status-floating'
+                      }
+                    >
+                      {item.status}
+                    </td>
+                    <td className={item.return_percent >= 0 ? 'positive' : 'negative'}>
+                      {item.return_percent}%
+                    </td>
+                    <td>{item.rr_ratio}</td>
+                    <td>{item.max_drawdown}%</td>
+                    <td>{item.holding_days}</td>
+                    <td>{new Date(item.created_at).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
