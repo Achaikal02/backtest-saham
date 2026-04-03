@@ -1,19 +1,34 @@
-const YahooFinance = require('yahoo-finance2').default
+import YahooFinance from 'yahoo-finance2'
 
 const yahooFinance = new YahooFinance()
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({
+      error: 'Method not allowed'
+    })
+  }
+
   try {
-    const stocks = req.body.stocks
+    const { stocks } = req.body
+
+    if (!stocks || !Array.isArray(stocks) || stocks.length === 0) {
+      return res.status(400).json({
+        error: 'Data stocks tidak valid'
+      })
+    }
 
     const results = await Promise.all(
       stocks.map(async (item) => {
         try {
-          const history = await yahooFinance.historical(item.ticker + '.JK', {
-            period1: item.entryDate,
-            period2: item.endDate,
-            interval: '1d'
-          })
+          const history = await yahooFinance.historical(
+            `${item.ticker}.JK`,
+            {
+              period1: item.entryDate,
+              period2: item.endDate,
+              interval: '1d'
+            }
+          )
 
           if (!history || history.length === 0) {
             return {
@@ -22,9 +37,16 @@ module.exports = async (req, res) => {
             }
           }
 
-          const highestPrice = Math.max(...history.map(h => h.high))
-          const lowestPrice = Math.min(...history.map(h => h.low))
-          const lastClose = history[history.length - 1].close
+          const highestPrice = Math.max(
+            ...history.map((day) => day.high || 0)
+          )
+
+          const lowestPrice = Math.min(
+            ...history.map((day) => day.low || 0)
+          )
+
+          const lastClose =
+            history[history.length - 1]?.close || item.buyPrice
 
           let status = 'Floating'
           let exitPrice = lastClose
@@ -50,6 +72,7 @@ module.exports = async (req, res) => {
             ((exitPrice - item.buyPrice) / item.buyPrice) * 100
 
           const floatingPnL = lastClose - item.buyPrice
+
           const floatingPnLPercent =
             ((lastClose - item.buyPrice) / item.buyPrice) * 100
 
@@ -78,10 +101,10 @@ module.exports = async (req, res) => {
             buyPrice: item.buyPrice,
             targetPrice: item.targetPrice,
             stopLoss: item.stopLoss,
-            highestPrice,
-            lowestPrice,
-            currentPrice: lastClose,
-            exitPrice,
+            highestPrice: Number(highestPrice.toFixed(2)),
+            lowestPrice: Number(lowestPrice.toFixed(2)),
+            currentPrice: Number(lastClose.toFixed(2)),
+            exitPrice: Number(exitPrice.toFixed(2)),
             status,
             returnPercent: Number(returnPercent.toFixed(2)),
             floatingPnL: Number(floatingPnL.toFixed(2)),
@@ -102,7 +125,7 @@ module.exports = async (req, res) => {
       })
     )
 
-    const validResults = results.filter(item => !item.error)
+    const validResults = results.filter((item) => !item.error)
 
     const totalReturn = validResults.reduce((sum, item) => {
       return sum + item.returnPercent
@@ -114,16 +137,30 @@ module.exports = async (req, res) => {
         : 0
 
     const winningTrades = validResults.filter(
-      item => item.returnPercent > 0
+      (item) => item.returnPercent > 0
     ).length
 
     const losingTrades = validResults.filter(
-      item => item.returnPercent <= 0
+      (item) => item.returnPercent <= 0
     ).length
 
     const averageHoldingDays =
       validResults.length > 0
-        ? validResults.reduce((sum, item) => sum + item.actualHoldingDays, 0) /
+        ? validResults.reduce(
+            (sum, item) => sum + item.actualHoldingDays,
+            0
+          ) / validResults.length
+        : 0
+
+    const averageRR =
+      validResults.length > 0
+        ? validResults.reduce((sum, item) => sum + item.rrRatio, 0) /
+          validResults.length
+        : 0
+
+    const averageMaxDrawdown =
+      validResults.length > 0
+        ? validResults.reduce((sum, item) => sum + item.maxDrawdown, 0) /
           validResults.length
         : 0
 
@@ -132,7 +169,7 @@ module.exports = async (req, res) => {
         ? (winningTrades / validResults.length) * 100
         : 0
 
-    res.status(200).json({
+    return res.status(200).json({
       summary: {
         totalTrades: validResults.length,
         winningTrades,
@@ -140,15 +177,17 @@ module.exports = async (req, res) => {
         winRate: Number(winRate.toFixed(2)),
         totalReturn: Number(totalReturn.toFixed(2)),
         averageReturn: Number(averageReturn.toFixed(2)),
-        averageHoldingDays: Number(averageHoldingDays.toFixed(2))
+        averageHoldingDays: Number(averageHoldingDays.toFixed(2)),
+        averageRR: Number(averageRR.toFixed(2)),
+        averageMaxDrawdown: Number(averageMaxDrawdown.toFixed(2))
       },
       results
     })
   } catch (error) {
     console.error('Error backtest:', error)
 
-    res.status(500).json({
-      error: error.message
+    return res.status(500).json({
+      error: error.message || 'Terjadi kesalahan pada server'
     })
   }
 }
