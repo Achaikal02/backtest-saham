@@ -175,6 +175,33 @@ export default async function handler(req, res) {
         ? (winningTrades / validResults.length) * 100
         : 0
 
+    const rowsToInsert = validResults.map((item) => ({
+      created_at: new Date().toISOString(),
+      ticker: item.ticker,
+      entry_date: item.entryDate,
+      end_date: item.endDate,
+      buy_price: item.buyPrice,
+      target_price: item.targetPrice,
+      stop_loss: item.stopLoss,
+      highest_price: item.highestPrice,
+      lowest_price: item.lowestPrice,
+      current_price: item.currentPrice,
+      exit_price: item.exitPrice,
+      status: item.status,
+      return_percent: item.returnPercent,
+      rr_ratio: item.rrRatio,
+      max_drawdown: item.maxDrawdown,
+      holding_days: item.actualHoldingDays
+    }))
+
+    const { error: insertError } = await supabase
+      .from('backtest_history')
+      .insert(rowsToInsert)
+
+    if (insertError) {
+      console.error('Supabase insert error:', insertError)
+    }
+
     return res.status(200).json({
       summary: {
         totalTrades: validResults.length,
@@ -191,28 +218,6 @@ export default async function handler(req, res) {
     })
   } catch (error) {
     console.error('Error backtest:', error)
-
-    const { error: insertError } = await supabase
-        .from('backtest_results')
-        .insert([
-            {
-            created_at: new Date().toISOString(),
-            total_trades: validResults.length,
-            winning_trades: winningTrades,
-            losing_trades: losingTrades,
-            win_rate: Number(winRate.toFixed(2)),
-            total_return: Number(totalReturn.toFixed(2)),
-            average_return: Number(averageReturn.toFixed(2)),
-            average_holding_days: Number(averageHoldingDays.toFixed(2)),
-            average_rr: Number(averageRR.toFixed(2)),
-            average_max_drawdown: Number(averageMaxDrawdown.toFixed(2)),
-            results
-            }
-        ])
-
-        if (insertError) {
-        console.error('Supabase insert error:', insertError)
-        }
 
     return res.status(500).json({
       error: error.message || 'Terjadi kesalahan pada server'
