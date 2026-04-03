@@ -176,30 +176,35 @@ export default async function handler(req, res) {
         : 0
 
     const rowsToInsert = validResults.map((item) => ({
-      created_at: new Date().toISOString(),
-      ticker: item.ticker,
-      entry_date: item.entryDate,
-      end_date: item.endDate,
-      buy_price: item.buyPrice,
-      target_price: item.targetPrice,
-      stop_loss: item.stopLoss,
-      highest_price: item.highestPrice,
-      lowest_price: item.lowestPrice,
-      current_price: item.currentPrice,
-      exit_price: item.exitPrice,
-      status: item.status,
-      return_percent: item.returnPercent,
-      rr_ratio: item.rrRatio,
-      max_drawdown: item.maxDrawdown,
-      holding_days: item.actualHoldingDays
+        created_at: new Date().toISOString(),
+        ticker: item.ticker,
+        entry_date: item.entryDate,
+        end_date: item.endDate,
+        buy_price: item.buyPrice,
+        target_price: item.targetPrice,
+        stop_loss: item.stopLoss,
+        highest_price: item.highestPrice,
+        lowest_price: item.lowestPrice,
+        current_price: item.currentPrice,
+        exit_price: item.exitPrice,
+        status: item.status,
+        return_percent: item.returnPercent,
+        rr_ratio: item.rrRatio,
+        max_drawdown: item.maxDrawdown,
+        holding_days: item.actualHoldingDays
     }))
 
-    const { error: insertError } = await supabase
-      .from('backtest_history')
-      .insert(rowsToInsert)
+    console.log('Rows to insert:', rowsToInsert)
+
+    const { data: insertedData, error: insertError } = await supabase
+    .from('backtest_history')
+    .insert(rowsToInsert)
+    .select()
+
+    console.log('Inserted data:', insertedData)
 
     if (insertError) {
-      console.error('Supabase insert error:', insertError)
+    console.error('Supabase insert error full:', JSON.stringify(insertError))
     }
 
     return res.status(200).json({
